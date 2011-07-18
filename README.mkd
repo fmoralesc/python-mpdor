@@ -1,0 +1,6 @@
+# python-mpdor
+
+A high level gobject-based mpd library.
+
+(c)Felipe Morales
+2011/07/18
