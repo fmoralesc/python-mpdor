@@ -1,6 +1,55 @@
 # python-mpdor
 
-A high level gobject-based mpd library.
+A high level gobject-based wrapper to python-mpd, designed with ease of use in mind.
 
-(c)Felipe Morales
+## Features
+
+1. gobject-based signal system, for event handling.
+2. python-mpd API compatible.
+3. simplified client setup.
+
+## Dependencies
+
+1. `python-gobject`
+2. `python-mpd`
+
+## Examples
+
+A simple script:
+
+	import mpdor
+
+	client = mpdor.client.Client()
+	client.play()
+	print mpdor.info.SongData(client.currentsong())
+	client.next()
+
+A console notification script:
+
+	import gobject
+	import mpdor
+
+	def notify(client, vol):
+		print "mpd volume is at ", vol + "%"
+
+	client = mpdor.client.Client()
+	client.connect("mixer-change", notify)
+	gobject.MainLoop().run()
+
+Subclassing `mpdor.client.Client` is preferred:
+	
+	import gobject
+	import mpdor
+
+	class MinimalNotification(mpdor.client.Client):
+		def on_player_song_start(self, client, songdata):
+			print songdata.title, "by", songdata.artist
+
+	mpdor.client.MinimalNotification()
+	gobject.MainLoop().run()
+
+For a more complete example, see [`test.py`](test.py).
+
+Felipe Morales
+
 2011/07/18

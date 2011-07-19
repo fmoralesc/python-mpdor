@@ -35,6 +35,9 @@ class SongData(gobject.GObject):
 				return songdata["title"].split(" - ")[0]
 		elif songdata.has_key("artist"):
 			return songdata["artist"]
+	
+	def __repr__(self):
+		return self.__dict__.__repr__()
 
 # Playback mode
 class MPDOptions(gobject.GObject):
@@ -45,3 +48,6 @@ class MPDOptions(gobject.GObject):
 		self.random = bool(int(status["random"]))
 		self.consume = bool(int(status["consume"]))
 		self.single = bool(int(status["single"]))
+
+	def __repr__(self):
+		return self.__dict__.__repr__()

@@ -26,7 +26,7 @@ class TestClient(Client):
 	def on_player_unpaused(self, client): print "unpaused"
 	def on_mixer_change(self, client, vol): print "volume:", vol
 	def on_player_seeked(self, client, pos): print "seeked:", pos
-	def on_options_change(self, client, options): print options.__dict__
+	def on_options_change(self, client, options): print options
 
 if __name__ == "__main__":
 	c = TestClient()
