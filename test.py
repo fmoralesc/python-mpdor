@@ -7,21 +7,19 @@ except:
 	colored = False
 
 class TestClient(Client):
-	def on_idle_change(self, client, event):
-		print "mpd event: @" + event
-
-	def on_player_song_start(self, client):
-		csong = self.currentsong()
+	def on_player_song_start(self, client, songdata):
 		if colored:
-			print colored(csong["title"], "white", attrs=("bold",)) + \
-					" by " + colored(csong["artist"], "yellow", attrs=("bold",))
+			print colored(songdata.title, "white", attrs=("bold",)) + \
+					" by " + colored(songdata.artist, "yellow", attrs=("bold",))
 		else:
-			print csong["title"] + " by " + csong["artist"]
-
+			print songdata.title + " by " + songdata.artist
+	
+	def on_idle_change(self, client, event): print "mpd event: @" + event
 	def on_player_stopped(self, client): print "stopped"
 	def on_player_paused(self, client): print "paused"
 	def on_player_unpaused(self, client): print "unpaused"
-	def on_player_seeked(self, client): print "seeked"
+	def on_player_seeked(self, client, pos): print "seeked:", pos
+	def on_options_change(self, client, options): print options
 
 if __name__ == "__main__":
 	c = TestClient()
