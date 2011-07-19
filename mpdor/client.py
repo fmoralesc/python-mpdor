@@ -138,9 +138,9 @@ class Client(gobject.GObject):
 	def on_idle_change(self, client, event): pass
 	def on_database_change(self, client): pass
 	def on_message_change(self, client): pass
-	def on_mixer_change(self, client, volume):	pass
+	def on_mixer_change(self, client, volume): pass
 	def on_options_change(self, client, options): pass
-	def on_output_change(self, client):	pass
+	def on_output_change(self, client): pass
 	def on_player_change(self, client, state): pass
 	def on_playlist_change(self, client): pass
 	def on_sticker_change(self, client): pass
@@ -148,7 +148,7 @@ class Client(gobject.GObject):
 	def on_subscription_change(self, client): pass
 	def on_update_change(self, client): pass
 	def on_player_stopped(self, client): pass
- 	def on_player_paused(self, client): pass
+	def on_player_paused(self, client): pass
 	def on_player_unpaused(self, client): pass
 	def on_player_song_start(self, client, songdata): pass
 	def on_player_seeked(self, client, pos): pass

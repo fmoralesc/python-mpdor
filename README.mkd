@@ -4,8 +4,8 @@ A high level gobject-based wrapper to python-mpd, designed with ease of use in m
 
 ## Features
 
-1. gobject-based signal system, for event handling.
-2. python-mpd API compatible.
+1. python-mpd API compatible.
+2. gobject-based signal system, for event handling.
 3. simplified client setup.
 
 ## Dependencies
