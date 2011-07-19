@@ -24,11 +24,12 @@ class Client(gobject.GObject):
 			"update-change": (gobject.SIGNAL_RUN_LAST, None, ())
 			}
 
-	def __init__(self, host="localhost", port=6600, password="", connect_signals=True):
+	def __init__(self, connect_at_init=True, host="localhost", port=6600, password="", connect_signals=True):
 		gobject.GObject.__init__(self)
 		
-		self.set_server(host, port, password)		
-		self.connect_to_server(connect_signals)
+		if connect_at_init:
+			self.set_server(host, port, password)		
+			self.connect_to_server(connect_signals)
 
 	def set_server(self, host, port, password):
 		self.__host, self.__port, self.__password = host, port, password
