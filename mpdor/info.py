@@ -48,6 +48,10 @@ class MPDOptions(gobject.GObject):
 		self.random = bool(int(status["random"]))
 		self.consume = bool(int(status["consume"]))
 		self.single = bool(int(status["single"]))
+		self.crossfade = int(status["xfade"])
+		self.mixrampdb = float(status["mixrampdb"])
+		self.mixrampdelay = float(status["mixrampdelay"])
+		self.replay_gain_status = status["replay_gain_status"]
 
 	def __repr__(self):
 		return self.__dict__.__repr__()

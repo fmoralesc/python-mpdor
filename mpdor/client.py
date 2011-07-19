@@ -18,15 +18,17 @@ class Client(gobject.GObject):
 		self.__client.connect(self.__host, self.__port)
 		if self.__password not in ("", None):
 			self.__client.password(self.__password)
+		# we add the MPDClient methods to our client
 		for command in self.__client.__dict__["_commands"]:
 			if command.split()[0] in self.__client.commands():
+				# for some reason, adding the methods directly doesn't work, so we use eval
 				self.__dict__["_".join(command.split())] = \
 						eval("self._Client__client." + "_".join(command.split()))
 		self.command_list_ok_begin = self.__client.command_list_ok_begin
 		self.command_list_end = self.__client.command_list_end
 		self.mpd_version = self.__client.mpd_version
 		
-		# for signals
+		# for signals, we create a secondary client, which will use the idle mechanism to handle events
 		self.__notification_client = mpd.MPDClient()
 		self.__notification_client.connect(self.__host, self.__port)
 		if self.__password not in ("", None):
@@ -65,11 +67,13 @@ class Client(gobject.GObject):
 	
 	def disconnect_from_server(self):
 		self.__client.disconnect()
+		# we must clean the methods we added to the client
 		for command in [com for com in self.__dict__ if com[0] != "_"]:
 			if command != "mpd_version":
 				del self.__dict__[command]
 		
 		self.__notification_client.disconnect()
+		# we remove the event watcher
 		gobject.source_remove(self.__notification_source)
 	
 	def notify(self, source, condition):
@@ -120,6 +124,7 @@ class Client(gobject.GObject):
 				self.emit("stored-playlist-change")
 			
 			elif change == "options":
+				status["replay_gain_status"] = self.replay_gain_status()
 				options = mpdor.info.MPDOptions(status)
 				self.emit("options-change", options)
 			
