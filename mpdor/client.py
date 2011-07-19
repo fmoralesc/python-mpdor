@@ -62,7 +62,7 @@ class Client(gobject.GObject):
 
 		self.__notification_client.send_idle()
 		self.__notification_source = gobject.io_add_watch(self.__notification_client, \
-				gobject.IO_IN, self.notify)
+				gobject.IO_IN, self.__notify)
 
 		if connect_signals:
 			self.connect_signals()
@@ -78,7 +78,7 @@ class Client(gobject.GObject):
 		# we remove the event watcher
 		gobject.source_remove(self.__notification_source)
 	
-	def notify(self, source, condition):
+	def __notify(self, source, condition):
 		changes = self.__notification_client.fetch_idle()
 		self.emit("idle-change", ";".join(changes))
 
