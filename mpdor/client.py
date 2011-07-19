@@ -84,12 +84,7 @@ class Client(gobject.GObject):
 					self.__paused = True
 				else:
 					current_song = self.__notification_client.currentsong()
-					songdata = mpdor.info.SongData(current_song["artist"],
-							current_song["title"],
-							current_song["album"],
-							current_song["track"],
-							current_song["date"],
-							current_song["genre"])
+					songdata = mpdor.info.SongData(current_song)
 					if self.__paused == True:
 						if current_song != self.__last_song:
 							self.emit("player-song-start", songdata)
@@ -113,11 +108,7 @@ class Client(gobject.GObject):
 			elif change == "stored_playlist":
 				self.emit("stored-playlist-change")
 			elif change == "options":
-				status = self.status()
-				options = mpdor.info.MPDOptions(bool(int(status["repeat"])), 
-						bool(int(status["random"])), 
-						bool(int(status["consume"])), 
-						bool(int(status["single"])))
+				options = mpdor.info.MPDOptions(self.status())
 				self.emit("options-change", options)
 			else:
 				self.emit(change+"-change")

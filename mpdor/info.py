@@ -1,25 +1,47 @@
 import gobject
 
 class SongData(gobject.GObject):
-	def __init__(self, artist=None, title=None, album=None, track=None, date=None, genre=None):
+	# Grabs songdata from the output of MPDClient.currentsong()
+	def __init__(self, currentsonginfo):
 		gobject.GObject.__init__(self)
-		self.artist = artist
-		self.title = title
-		self.album = album
-		self.track = track
-		self.date = date
-		self.genre = genre
+		self.title = self.__get_title(currentsonginfo)
+		artist = self.__get_artist(currentsonginfo)
+		if artist != None:
+			self.artist = artist
+		if currentsonginfo.has_key("album"):
+			self.album = currentsonginfo["album"]
+		if currentsonginfo.has_key("track"):
+			self.track = currentsonginfo["track"]
+		if currentsonginfo.has_key("date"):
+			self.date = currentsonginfo["date"]
+		if currentsonginfo.has_key("genre"):
+			self.genre = currentsonginfo["genre"]
 
+	# Returns song title
+	def __get_title(self, songdata):
+		if songdata.has_key("title"):
+			if songdata.has_key("name"): # we can assume it's a radio or stream
+				# we split the title from the info we have
+				# for streams, "title" is usually of the form "artist - title"
+				return songdata["title"].split(" - ")[1]
+			else:
+				return songdata["title"]
+		return songdata["file"] # we return the file path
+
+	# Returns song artist
+	def __get_artist(self, songdata):
+		if songdata.has_key("name"): # we can assume it's a radio or stream
+			if songdata.has_key("title"): # we grab the artist info from the title
+				return songdata["title"].split(" - ")[0]
+		elif songdata.has_key("artist"):
+			return songdata["artist"]
+
+# Playback mode
 class MPDOptions(gobject.GObject):
-	def __init__(self, repeat, random, consume, single):
+	# Grabs options info from the output of MPDClient.status()
+	def __init__(self, status):
 		gobject.GObject.__init__(self)
-		self.repeat = repeat
-		self.random = random
-		self.consume = consume
-		self.single = single
-	
-	def __repr__(self):
-		return "repeat: " + self.repeat.__repr__() +\
-				"; random: " + self.random.__repr__()  +\
-				"; consume: " + self.consume.__repr__() +\
-				"; single: " + self.single.__repr__()
+		self.repeat = bool(int(status["repeat"]))
+		self.random = bool(int(status["random"]))
+		self.consume = bool(int(status["consume"]))
+		self.single = bool(int(status["single"]))
