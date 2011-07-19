@@ -36,6 +36,7 @@ class Client(gobject.GObject):
 		self.__notification_client.send_idle()
 		self.__notification_source = gobject.io_add_watch(self.__notification_client, \
 				gobject.IO_IN, self.notify)
+
 		if connect_signals:
 			self.connect_signals()
 		
@@ -70,11 +71,15 @@ class Client(gobject.GObject):
 	def notify(self, source, condition):
 		changes = self.__notification_client.fetch_idle()
 		self.emit("idle-change", ";".join(changes))
+
+		status = self.__notification_client.status()
+		
 		for change in changes:
 			if change == "mixer":
-				self.emit("mixer-change", int(self.__notification_client.status()["volume"]))
+				self.emit("mixer-change", int(status["volume"]))
+			
 			elif change == "player":
-				state = self.__notification_client.status()["state"]
+				state = status["state"]
 				self.emit("player-change", state)
 				if state == "stop":
 					self.emit("player-stopped")
@@ -95,23 +100,28 @@ class Client(gobject.GObject):
 						self.emit("player-song-start", songdata)
 						self.__stopped = False
 					else:
-						current_song = self.__notification_client.currentsong()
 						if current_song != self.__last_song:
 							self.emit("player-song-start", songdata)
 							self.__last_song = current_song
 						else:
-							self.emit("player-seeked", float(self.status()["elapsed"]))
+							self.emit("player-seeked", float(status["elapsed"]))
+			
 			elif change == "playlist":
-				if len(self.__notification_client.playlist()) < 1:
+				playlist = self.__notification_client.playlist()
+				if len(playlist) < 1:
 					self.emit("playlist-cleared")
 				self.emit("playlist-change")
+			
 			elif change == "stored_playlist":
 				self.emit("stored-playlist-change")
+			
 			elif change == "options":
-				options = mpdor.info.MPDOptions(self.status())
+				options = mpdor.info.MPDOptions(status)
 				self.emit("options-change", options)
+			
 			else:
 				self.emit(change+"-change")
+		
 		self.__notification_client.send_idle()
 		return True
 
