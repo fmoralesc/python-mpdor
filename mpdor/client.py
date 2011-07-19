@@ -22,6 +22,9 @@ class Client(gobject.GObject):
 			if command.split()[0] in self.__client.commands():
 				self.__dict__["_".join(command.split())] = \
 						eval("self._Client__client." + "_".join(command.split()))
+		self.command_list_ok_begin = self.__client.command_list_ok_begin
+		self.command_list_end = self.__client.command_list_end
+		self.mpd_version = self.__client.mpd_version
 		
 		# for signals
 		self.__notification_client = mpd.MPDClient()
@@ -62,11 +65,12 @@ class Client(gobject.GObject):
 	
 	def disconnect_from_server(self):
 		self.__client.disconnect()
-		for com in [com for com in self.__dict__ if com[0] != "_"]:
-			del self.__dict__[com]
+		for command in [com for com in self.__dict__ if com[0] != "_"]:
+			if command != "mpd_version":
+				del self.__dict__[command]
 		
 		self.__notification_client.disconnect()
-		gobject.remove_source(self.__notification_source)
+		gobject.source_remove(self.__notification_source)
 	
 	def notify(self, source, condition):
 		changes = self.__notification_client.fetch_idle()
@@ -145,21 +149,21 @@ class Client(gobject.GObject):
 	def on_player_seeked(self, client, pos): pass
 	def on_playlist_cleared(self, client): pass
 
-gobject.signal_new("idle-change", Client, gobject.SIGNAL_ACTION, None, (str,))
 gobject.signal_new("database-change", Client, gobject.SIGNAL_ACTION, None, ())
+gobject.signal_new("idle-change", Client, gobject.SIGNAL_ACTION, None, (str,))
 gobject.signal_new("message-change", Client, gobject.SIGNAL_ACTION, None, ())
 gobject.signal_new("mixer-change", Client, gobject.SIGNAL_ACTION, None, (int,))
 gobject.signal_new("options-change", Client, gobject.SIGNAL_ACTION, None, (mpdor.info.MPDOptions,))
 gobject.signal_new("output-change", Client, gobject.SIGNAL_ACTION, None, ())
 gobject.signal_new("player-change", Client, gobject.SIGNAL_ACTION, None, (str,))
+gobject.signal_new("player-paused", Client, gobject.SIGNAL_ACTION, None, ())
+gobject.signal_new("player-seeked", Client, gobject.SIGNAL_ACTION, None, (float,))
+gobject.signal_new("player-song-start", Client, gobject.SIGNAL_ACTION, None, (mpdor.info.SongData,))
+gobject.signal_new("player-stopped", Client, gobject.SIGNAL_ACTION, None, ())
+gobject.signal_new("player-unpaused", Client, gobject.SIGNAL_ACTION, None, ())
 gobject.signal_new("playlist-change", Client, gobject.SIGNAL_ACTION, None, ())
+gobject.signal_new("playlist-cleared", Client, gobject.SIGNAL_ACTION, None, ())
 gobject.signal_new("sticker-change", Client, gobject.SIGNAL_ACTION, None, ())
 gobject.signal_new("stored-playlist-change", Client, gobject.SIGNAL_ACTION, None, ())
 gobject.signal_new("subscription-change", Client, gobject.SIGNAL_ACTION, None, ())
 gobject.signal_new("update-change", Client, gobject.SIGNAL_ACTION, None, ())
-gobject.signal_new("player-stopped", Client, gobject.SIGNAL_ACTION, None, ())
-gobject.signal_new("player-paused", Client, gobject.SIGNAL_ACTION, None, ())
-gobject.signal_new("player-unpaused", Client, gobject.SIGNAL_ACTION, None, ())
-gobject.signal_new("player-song-start", Client, gobject.SIGNAL_ACTION, None, (mpdor.info.SongData,))
-gobject.signal_new("player-seeked", Client, gobject.SIGNAL_ACTION, None, (float,))
-gobject.signal_new("playlist-cleared", Client, gobject.SIGNAL_ACTION, None, ())
