@@ -47,15 +47,12 @@ class MPDProtocolClient(object):
 		return line
 
 	def _get_response(self):
-		lines = []
+		raw_lines = []
 		line = self._read_line()
 		while line != None:
-			lines.append(line)
+			raw_lines.append(line)
 			line = self._read_line()
-		return lines
-
-	def _get_parsed_response(self):
-		raw_lines = self._get_response()
+		
 		if len(raw_lines) == 0:
 			return # we have OK
 		else:
@@ -88,13 +85,13 @@ class MPDProtocolClient(object):
 					tmp_dict = {}
 					for line in raw_lines:
 						line_data = [d.strip() for d in line.split(":")]
-						_attr = line_data[0]
-						if _attr in seen_attrs or line == raw_lines[-1]:
-							seen_attrs = []
-							items.append(tmp_dict)
-							tmp_dict = {}
-						tmp_dict[_attr] = line_data[1]
+						_attr, value = line_data[0], line_data[1]
+						tmp_dict[_attr] = value
 						seen_attrs.append(_attr)
+						if line == raw_lines[-1] or _attr in seen_attrs:
+							items.append(tmp_dict)
+							seen_attrs = []
+							tmp_dict = {}
 					return items
 		return raw_lines
 	
@@ -105,7 +102,7 @@ class MPDProtocolClient(object):
 			if self._command_list is not None:
 				self._command_list.append(line)
 			else:
-				return self._get_parsed_response()
+				return self._get_response()
 		else:
 			raise PendingCommandError("Can't execute commands while other" 
 			"commands are pending")
@@ -206,7 +203,7 @@ class MPDProtocolClient(object):
 			raise CommandListError("Not in command list")
 		self._write_line("command_list_end")
 		self._command_list = None
-		return self._get_parsed_response()
+		return self._get_response()
 	
 	def idle(self, *subsystem):
 		if self._pending == False:
