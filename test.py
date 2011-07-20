@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 import gobject
 from mpdor.client import Client
+from mpdor.protocol import MPDProtocolClient
 try:
 	from termcolor import colored
 except:
@@ -28,6 +29,18 @@ class TestClient(Client):
 	def on_player_seeked(self, client, pos): print "seeked:", pos
 	def on_options_change(self, client, options): print options
 
+def callback(source, condition):
+	if colored:
+		print colored("protocol:", "red", attrs=("bold",)), source._get_response()
+	else:
+		print "protocol:", source._get_response()
+	source.idle()
+	return True
+
 if __name__ == "__main__":
 	c = TestClient()
+	c = MPDProtocolClient()
+	c.connect("localhost", 6600)
+	c.idle()
+	gobject.io_add_watch(c, gobject.IO_IN, callback)
 	gobject.MainLoop().run()
