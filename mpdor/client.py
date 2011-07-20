@@ -26,15 +26,15 @@ class Client(gobject.GObject):
 
 	def __init__(self, connect_at_init=True, host="localhost", port=6600, password="", connect_signals=True):
 		gobject.GObject.__init__(self)
-		
+		self.__connect_signals = connect_signals
 		if connect_at_init:
 			self.set_server(host, port, password)		
-			self.connect_to_server(connect_signals)
+			self.connect_to_server()
 
 	def set_server(self, host, port, password):
 		self.__host, self.__port, self.__password = host, port, password
 
-	def connect_to_server(self, connect_signals=True):	
+	def connect_to_server(self):	
 		# for commands
 		self.__client = mpd.MPDClient()
 		self.__client.connect(self.__host, self.__port)
@@ -64,7 +64,7 @@ class Client(gobject.GObject):
 		self.__notification_source = gobject.io_add_watch(self.__notification_client, \
 				gobject.IO_IN, self.__notify)
 
-		if connect_signals:
+		if self.__connect_signals:
 			self.connect_signals()
 
 	def disconnect_from_server(self):
