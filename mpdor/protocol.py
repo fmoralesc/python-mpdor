@@ -65,7 +65,7 @@ class MPDProtocolClient(object):
 					return [":".join(com.split(":")[1:]).strip() for com in raw_lines]
 				#  those are dictionaries or single values
 				elif self._last_command in ("status", "currentsong", "stats", 
-						"replay_gain_status", "playlist", "addid"):
+						"replay_gain_status", "playlist", "addid", "idle"):
 					response_data = {}
 					for line in raw_lines:
 						line_data = [d.strip() for d in line.split(":")]
@@ -73,6 +73,9 @@ class MPDProtocolClient(object):
 							response_data[int(line_data[0])] = line_data[2]
 						elif self._last_command == "addid":
 							return int(line_data[1])
+						elif self._last_command == "idle":
+							self._pending = False
+							return line_data[1]
 						else:
 							response_data[line_data[0]] = line_data[1]
 					return response_data
@@ -93,10 +96,11 @@ class MPDProtocolClient(object):
 							seen_attrs = []
 							tmp_dict = {}
 					return items
+		print self._last_command
 		return raw_lines
 	
 	def _execute(self, *args):
-		line = " ".join([args[0], " ".join([str(i) for i in args[1]])]).strip()
+		line = " ".join([args[0], " ".join(['"'+str(i)+'"' for i in args[1]])]).strip()
 		if not self._pending:
 			self._write_line(line)
 			if self._command_list is not None:
@@ -113,7 +117,7 @@ class MPDProtocolClient(object):
 	def _get_commands(self):
 		available_commands = self._execute("commands", ())
 		for command in available_commands:
-			if command != "idle":
+			if command not in ("idle", "password"): #those require extra work
 				self.__dict__[command] = self._create_executor(command)
 
 	def _hello(self):
@@ -150,8 +154,8 @@ class MPDProtocolClient(object):
 			flags = 0
 		err = None
 		for res in socket.getaddrinfo(host, port, socket.AF_UNSPEC,
-									socket.SOCK_STREAM, socket.IPPROTO_TCP,
-									flags):
+				socket.SOCK_STREAM, socket.IPPROTO_TCP,
+				flags):
 			af, socktype, proto, canonname, sa = res
 			sock = None
 			try:
@@ -215,3 +219,8 @@ class MPDProtocolClient(object):
 		if self._pending == True:
 			self._pending = False
 			self._execute("noidle", args)
+
+	def password(self, password):
+		if self._pending == False:
+			self._execute("password", password)
+			self._get_commands() # available commands might have changed
