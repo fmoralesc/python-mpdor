@@ -57,6 +57,7 @@ class MPDProtocolClient(object):
 			return # we have OK
 		else:
 			if NEXT in raw_lines:
+				# TODO: extend the parser to handle this
 				pass
 			else:
 				# those are lists
@@ -91,12 +92,21 @@ class MPDProtocolClient(object):
 					for line in raw_lines:
 						line_data = [d.strip() for d in line.split(":")]
 						_attr, value = line_data[0], line_data[1]
-						tmp_dict[_attr] = value
-						seen_attrs.append(_attr)
-						if line == raw_lines[-1] or _attr in seen_attrs:
-							items.append(tmp_dict)
-							seen_attrs = []
+						if _attr in seen_attrs:	# TOFIX: might choke if there is duplicate data (id3 duplicates)
+ 							items.append(tmp_dict)
 							tmp_dict = {}
+							seen_attrs = []
+							seen_attrs.append(_attr)
+							tmp_dict[_attr] = value
+						elif line == raw_lines[-1]:
+							tmp_dict[_attr] = value
+							items.append(tmp_dict)
+							tmp_dict = {}
+							seen_attrs = []
+							seen_attrs.append(_attr)
+						else:
+							seen_attrs.append(_attr)
+							tmp_dict[_attr] = value
 					return items
 		return raw_lines
 	
@@ -116,10 +126,10 @@ class MPDProtocolClient(object):
 		return lambda *args: self._execute(command, args)
 
 	def _get_commands(self):
-		available_commands = self._execute("commands", ())
+		# idle and password must be treated differently, so we filter them out
+		available_commands = [com for com in self._execute("commands", ()) if com not in ("idle", "password")]
 		for command in available_commands:
-			if command not in ("idle", "password"): #those require extra work
-				self.__dict__[command] = self._create_executor(command)
+			self.__dict__[command] = self._create_executor(command)
 
 	def _hello(self):
 		line = self._rfile.readline()
