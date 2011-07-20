@@ -63,6 +63,7 @@ class MPDProtocolClient(object):
 				if self._last_command in ("commands", "notcommands", "list", 
 						"listplaylist", "tagtypes", "urlhandlers"):
 					return [":".join(com.split(":")[1:]).strip() for com in raw_lines]
+				
 				#  those are dictionaries or single values
 				elif self._last_command in ("status", "currentsong", "stats", 
 						"replay_gain_status", "playlist", "addid", "idle"):
@@ -79,6 +80,7 @@ class MPDProtocolClient(object):
 						else:
 							response_data[line_data[0]] = line_data[1]
 					return response_data
+				
 				# those are lists of dictionaries
 				elif self._last_command in ("playlistid", "playlistfind", 
 						"playlistsearch", "playlistinfo", "plchanges", "plchangesposid", 
@@ -96,7 +98,6 @@ class MPDProtocolClient(object):
 							seen_attrs = []
 							tmp_dict = {}
 					return items
-		print self._last_command
 		return raw_lines
 	
 	def _execute(self, *args):
@@ -190,6 +191,9 @@ class MPDProtocolClient(object):
 		self._wfile.close()
 		self._sock.close()
 		self._reset()
+		# we delete all of the instance's protocol methods
+		for com in [com for com in self.__dict__ if callable(self.__dict__[com])]:
+			del self.__dict__[com]
 
 	def fileno(self):
 		if self._sock is None:
