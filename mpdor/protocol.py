@@ -27,6 +27,7 @@ class MPDProtocolClient(object):
 	def _write_line(self, line):
 		self._wfile.write("%s\n" % line)
 		self._wfile.flush()
+		self._last_command = line.split()[0]
 
 	def _read_line(self):
 		line = self._rfile.readline()
@@ -51,10 +52,51 @@ class MPDProtocolClient(object):
 		while line != None:
 			lines.append(line)
 			line = self._read_line()
-		if len(lines) == 0:
-			return
+		return lines
+
+	def _get_parsed_response(self):
+		raw_lines = self._get_response()
+		if len(raw_lines) == 0:
+			return # we have OK
 		else:
-			return lines
+			if NEXT in raw_lines:
+				pass
+			else:
+				# those are lists
+				if self._last_command in ("commands", "notcommands", "list", 
+						"listplaylist", "tagtypes", "urlhandlers"):
+					return [":".join(com.split(":")[1:]).strip() for com in raw_lines]
+				#  those are dictionaries or single values
+				elif self._last_command in ("status", "currentsong", "stats", 
+						"replay_gain_status", "playlist", "addid"):
+					response_data = {}
+					for line in raw_lines:
+						line_data = [d.strip() for d in line.split(":")]
+						if self._last_command == "playlist":
+							response_data[int(line_data[0])] = line_data[2]
+						elif self._last_command == "addid":
+							return int(line_data[1])
+						else:
+							response_data[line_data[0]] = line_data[1]
+					return response_data
+				# those are lists of dictionaries
+				elif self._last_command in ("playlistid", "playlistfind", 
+						"playlistsearch", "playlistinfo", "plchanges", "plchangesposid", 
+						"listplaylistinfo",	"search", "find", "listplaylists", "outputs"):
+					items = []
+					seen_attrs = []
+					tmp_dict = {}
+					for line in raw_lines:
+						line_data = [d.strip() for d in line.split(":")]
+						_attr = line_data[0]
+						if _attr in seen_attrs or line == raw_lines[-1]:
+							seen_attrs = []
+							items.append(tmp_dict)
+							tmp_dict = {}
+						tmp_dict[_attr] = line_data[1]
+						seen_attrs.append(_attr)
+					return items
+		return raw_lines
 	
 	def _execute(self, *args):
 		line = " ".join([args[0], " ".join([str(i) for i in args[1]])]).strip()
@@ -63,16 +105,16 @@ class MPDProtocolClient(object):
 			if self._command_list is not None:
 				self._command_list.append(line)
 			else:
-				return self._get_response()
+				return self._get_parsed_response()
 		else:
-			raise PendingCommandError("Can't execute commands while other commands are pending")
+			raise PendingCommandError("Can't execute commands while other" 
+			"commands are pending")
 
 	def _create_executor(self, command):
 		return lambda *args: self._execute(command, args)
 
 	def _get_commands(self):
-		self._write_line("commands")
-		available_commands = [com.split(":")[1].strip() for com in self._get_response()]
+		available_commands = self._execute("commands", ())
 		for command in available_commands:
 			if command != "idle":
 				self.__dict__[command] = self._create_executor(command)
@@ -91,6 +133,7 @@ class MPDProtocolClient(object):
 		self.mpd_version = None
 		self._pending = False
 		self._command_list = None
+		self._last_command = None
 		self._sock = None
 		self._rfile = _NotConnected()
 		self._wfile = _NotConnected()
@@ -163,7 +206,7 @@ class MPDProtocolClient(object):
 			raise CommandListError("Not in command list")
 		self._write_line("command_list_end")
 		self._command_list = None
-		return self._get_response()
+		return self._get_parsed_response()
 	
 	def idle(self, *subsystem):
 		if self._pending == False:
