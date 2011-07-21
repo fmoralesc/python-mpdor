@@ -1,8 +1,8 @@
 import gobject
-import mpd
+import mpdor.protocol
 import mpdor.info
 
-class Client(gobject.GObject):
+class Client(mpdor.protocol.MPDProtocolClient):
 	__gsignals__ = {
 			"database-change":  (gobject.SIGNAL_RUN_LAST, None, ()),
 			"idle-change": (gobject.SIGNAL_RUN_LAST, None, (str,)),
@@ -25,7 +25,7 @@ class Client(gobject.GObject):
 			}
 
 	def __init__(self, connect_at_init=True, host="localhost", port=6600, password="", connect_signals=True):
-		gobject.GObject.__init__(self)
+		mpdor.protocol.MPDProtocolClient.__init__(self)
 		self.__connect_signals = connect_signals
 		if connect_at_init:
 			self.set_server(host, port, password)		
@@ -34,25 +34,14 @@ class Client(gobject.GObject):
 	def set_server(self, host, port, password):
 		self.__host, self.__port, self.__password = host, port, password
 
-	def connect_to_server(self):	
-		# for commands
-		self.__client = mpd.MPDClient()
-		self.__client.connect(self.__host, self.__port)
+	def connect_to_server(self):
+		mpdor.protocol.MPDProtocolClient.connect_to_server(self, self.__host, self.__port)
 		if self.__password not in ("", None):
-			self.__client.password(self.__password)
-		# we add the MPDClient methods to our client
-		for command in self.__client.__dict__["_commands"]:
-			if command.split()[0] in self.__client.commands():
-				# for some reason, adding the methods directly doesn't work, so we use eval
-				self.__dict__["_".join(command.split())] = \
-						eval("self._Client__client." + "_".join(command.split()))
-		self.command_list_ok_begin = self.__client.command_list_ok_begin
-		self.command_list_end = self.__client.command_list_end
-		self.mpd_version = self.__client.mpd_version
+			self.password(self.__password)
 		
 		# for signals, we create a secondary client, which will use the idle mechanism to handle events
-		self.__notification_client = mpd.MPDClient()
-		self.__notification_client.connect(self.__host, self.__port)
+		self.__notification_client = mpdor.protocol.MPDProtocolClient()
+		self.__notification_client.connect_to_server(self.__host, self.__port)
 		if self.__password not in ("", None):
 			self.__notification_client.password(self.__password)
 
@@ -60,7 +49,7 @@ class Client(gobject.GObject):
 		self.__stopped = "stop" == self.__notification_client.status()["state"]
 		self.__last_song = self.__notification_client.currentsong()
 
-		self.__notification_client.send_idle()
+		self.__notification_client.idle()
 		self.__notification_source = gobject.io_add_watch(self.__notification_client, \
 				gobject.IO_IN, self.__notify)
 
@@ -68,72 +57,66 @@ class Client(gobject.GObject):
 			self.connect_signals()
 
 	def disconnect_from_server(self):
-		self.__client.disconnect()
-		# we must clean the methods we added to the client
-		for command in [com for com in self.__dict__ if com[0] != "_"]:
-			if command != "mpd_version":
-				del self.__dict__[command]
-		
+		mpdor.protocol.MPDProtocolClient.disconnect_from_server(self)
 		self.__notification_client.disconnect()
 		# we remove the event watcher
 		gobject.source_remove(self.__notification_source)
 	
 	def __notify(self, source, condition):
-		changes = self.__notification_client.fetch_idle()
-		self.emit("idle-change", ";".join(changes))
+		change = self.__notification_client._get_response()
+		self.emit("idle-change", str(change))
 
 		status = self.__notification_client.status()
 		
-		for change in changes:
-			if change == "mixer":
-				self.emit("mixer-change", int(status["volume"]))
-			
-			elif change == "player":
-				state = status["state"]
-				self.emit("player-change", state)
-				if state == "stop":
-					self.emit("player-stopped")
-					self.__stopped = True
-				elif state == "pause":
-					self.emit("player-paused")
-					self.__paused = True
-				else:
-					current_song = self.__notification_client.currentsong()
-					songdata = mpdor.info.SongData(current_song)
-					if self.__paused == True:
-						if current_song != self.__last_song:
-							self.emit("player-song-start", songdata)
-							self.__last_song = current_song
-						self.emit("player-unpaused")
-						self.__paused = False
-					elif self.__stopped == True:
-						self.emit("player-song-start", songdata)
-						self.__stopped = False
-					else:
-						if current_song != self.__last_song:
-							self.emit("player-song-start", songdata)
-							self.__last_song = current_song
-						else:
-							self.emit("player-seeked", float(status["elapsed"]))
-			
-			elif change == "playlist":
-				playlist = self.__notification_client.playlist()
-				if len(playlist) < 1:
-					self.emit("playlist-cleared")
-				self.emit("playlist-change")
-			
-			elif change == "stored_playlist":
-				self.emit("stored-playlist-change")
-			
-			elif change == "options":
-				status["replay_gain_status"] = self.replay_gain_status()
-				options = mpdor.info.MPDOptions(status)
-				self.emit("options-change", options)
-			
-			else:
-				self.emit(change+"-change")
+		if change == "mixer":
+			self.emit("mixer-change", int(status["volume"]))
 		
-		self.__notification_client.send_idle()
+		elif change == "player":
+			state = status["state"]
+			self.emit("player-change", state)
+			if state == "stop":
+				self.emit("player-stopped")
+				self.__stopped = True
+			elif state == "pause":
+				self.emit("player-paused")
+				self.__paused = True
+			else:
+				current_song = self.__notification_client.currentsong()
+				songdata = mpdor.info.SongData(current_song)
+				if self.__paused == True:
+					if current_song != self.__last_song:
+						self.emit("player-song-start", songdata)
+						self.__last_song = current_song
+					self.emit("player-unpaused")
+					self.__paused = False
+				elif self.__stopped == True:
+					self.emit("player-song-start", songdata)
+					self.__stopped = False
+				else:
+					if current_song != self.__last_song:
+						self.emit("player-song-start", songdata)
+						self.__last_song = current_song
+					else:
+						self.emit("player-seeked", float(status["elapsed"]))
+		
+		elif change == "playlist":
+			playlist = self.__notification_client.playlist()
+			if not playlist or len(playlist) < 1:
+				self.emit("playlist-cleared")
+			self.emit("playlist-change")
+		
+		elif change == "stored_playlist":
+			self.emit("stored-playlist-change")
+		
+		elif change == "options":
+			status["replay_gain_mode"] = self.replay_gain_status()["replay_gain_mode"]
+			options = mpdor.info.MPDOptions(status)
+			self.emit("options-change", options)
+		
+		else:
+			self.emit(change+"-change")
+		
+		self.__notification_client.idle()
 		return True
 	
 	def connect_signals(self):

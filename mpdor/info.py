@@ -8,33 +8,33 @@ class SongData(gobject.GObject):
 		artist = self.__get_artist(currentsonginfo)
 		if artist != None:
 			self.artist = artist
-		if currentsonginfo.has_key("album"):
-			self.album = currentsonginfo["album"]
-		if currentsonginfo.has_key("track"):
-			self.track = currentsonginfo["track"]
-		if currentsonginfo.has_key("date"):
-			self.date = currentsonginfo["date"]
-		if currentsonginfo.has_key("genre"):
-			self.genre = currentsonginfo["genre"]
+		if currentsonginfo.has_key("Album"):
+			self.album = currentsonginfo["Album"]
+		if currentsonginfo.has_key("Track"):
+			self.track = currentsonginfo["Track"]
+		if currentsonginfo.has_key("Date"):
+			self.date = currentsonginfo["Date"]
+		if currentsonginfo.has_key("Genre"):
+			self.genre = currentsonginfo["Genre"]
 
 	# Returns song title
 	def __get_title(self, songdata):
-		if songdata.has_key("title"):
-			if songdata.has_key("name"): # we can assume it's a radio or stream
+		if songdata.has_key("Title"):
+			if songdata.has_key("Name"): # we can assume it's a radio or stream
 				# we split the title from the info we have
 				# for streams, "title" is usually of the form "artist - title"
-				return songdata["title"].split(" - ")[1]
+				return songdata["Title"].split(" - ")[1]
 			else:
-				return songdata["title"]
+				return songdata["Title"]
 		return songdata["file"] # we return the file path
 
 	# Returns song artist
 	def __get_artist(self, songdata):
-		if songdata.has_key("name"): # we can assume it's a radio or stream
-			if songdata.has_key("title"): # we grab the artist info from the title
-				return songdata["title"].split(" - ")[0]
-		elif songdata.has_key("artist"):
-			return songdata["artist"]
+		if songdata.has_key("Name"): # we can assume it's a radio or stream
+			if songdata.has_key("Title"): # we grab the artist info from the title
+				return songdata["Title"].split(" - ")[0]
+		elif songdata.has_key("Artist"):
+			return songdata["Artist"]
 	
 	def __repr__(self):
 		return self.__dict__.__repr__()
@@ -51,7 +51,7 @@ class MPDOptions(gobject.GObject):
 		self.crossfade = int(status["xfade"])
 		self.mixrampdb = float(status["mixrampdb"])
 		self.mixrampdelay = float(status["mixrampdelay"])
-		self.replay_gain_status = status["replay_gain_status"]
+		self.replay_gain_status = status["replay_gain_mode"]
 
 	def __repr__(self):
 		return self.__dict__.__repr__()

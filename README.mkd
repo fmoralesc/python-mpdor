@@ -1,6 +1,10 @@
 # python-mpdor
 
-A high level gobject-based wrapper to python-mpd, designed with ease of use in mind.
+by Felipe Morales
+
+2011/07/18
+
+A mpd library, designed with ease of use in mind.
 
 ## Features
 
@@ -11,9 +15,12 @@ A high level gobject-based wrapper to python-mpd, designed with ease of use in m
 ## Dependencies
 
 1. `python-gobject`
-2. `python-mpd`
 
 ## Examples
+
+### client.Client
+
+`mpdor.client.Client` implements a hight-level mpd client.
 
 A simple script:
 
@@ -39,17 +46,62 @@ A console notification script:
 Subclassing `mpdor.client.Client` is preferred:
 	
 	import gobject
-	import mpdor
+	from mpdor.client import Client
+	try:
+		from termcolor import colored
+	except:
+		colored = False
 
-	class MinimalNotification(mpdor.client.Client):
+	class TestClient(Client):
 		def on_player_song_start(self, client, songdata):
-			print songdata.title, "by", songdata.artist
+			if "artist" in songdata.__dict__:
+				if colored:
+					print colored(songdata.title, "white", attrs=("bold",)) + \
+							" by " + colored(songdata.artist, "yellow", attrs=("bold",))
+				else:
+					print songdata.title + " by " + songdata.artist
+			else:
+				if colored:
+					print colored(songdata.title, "white", attrs=("bold",))
+				else:
+					print songdata.title
+		
+		def on_idle_change(self, client, event): print "mpd event: @" + event
+		def on_player_stopped(self, client): print "stopped"
+		def on_player_paused(self, client): print "paused"
+		def on_player_unpaused(self, client): print "unpaused"
+		def on_mixer_change(self, client, vol): print "volume:", vol
+		def on_player_seeked(self, client, pos): print "seeked:", pos
+		def on_options_change(self, client, options): print options
 
-	MinimalNotification()
-	gobject.MainLoop().run()
+	if __name__ == "__main__":
+		t = TestClient()
+		gobject.MainLoop().run()
 
-For a more complete example, see [`test.py`](test.py).
+### protocol.MPDProtocolClient
 
-Felipe Morales
+`python-mpdor` includes a low-level library for interacting with mpd, based on
+the one on `python-mpd`. Its API is almost identical to the one of 
+`python-mpd`. `client.Client` is based on this class.
+	
+	import gobject
+	from mpdor.protocol import MPDProtocolClient
+	try:
+		from termcolor import colored
+	except:
+		colored = False
 
-2011/07/18
+	def callback(source, condition):
+		if colored:
+			print colored("protocol:", "red", attrs=("bold",)), source._get_response()
+		else:
+			print "protocol:", source._get_response()
+		source.idle()
+		return True
+
+	if __name__ == "__main__":
+		c = MPDProtocolClient()
+		c.connect_to_server("localhost", 6600)
+		c.idle()
+		gobject.io_add_watch(c, gobject.IO_IN, callback)
+		gobject.MainLoop().run()

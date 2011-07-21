@@ -40,7 +40,7 @@ def callback(source, condition):
 if __name__ == "__main__":
 	c = TestClient()
 	c = MPDProtocolClient()
-	c.connect("localhost", 6600)
+	c.connect_to_server("localhost", 6600)
 	c.idle()
 	gobject.io_add_watch(c, gobject.IO_IN, callback)
 	gobject.MainLoop().run()

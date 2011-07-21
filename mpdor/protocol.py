@@ -1,3 +1,4 @@
+import gobject
 import socket
 
 HELLO_PREFIX = "OK MPD "
@@ -20,8 +21,9 @@ class _NotConnected(object):
 	def _dummy(*args):
 		raise ConnectionError("Not connected")
 
-class MPDProtocolClient(object):
+class MPDProtocolClient(gobject.GObject):
 	def __init__(self):
+		gobject.GObject.__init__(self)
 		self._reset()
     
 	def _write_line(self, line):
@@ -67,13 +69,13 @@ class MPDProtocolClient(object):
 				
 				#  those are dictionaries or single values
 				elif self._last_command in ("status", "currentsong", "stats", 
-						"replay_gain_status", "playlist", "addid", "idle"):
+						"replay_gain_status", "playlist", "addid", "idle", "update"):
 					response_data = {}
 					for line in raw_lines:
 						line_data = [d.strip() for d in line.split(":")]
 						if self._last_command == "playlist":
 							response_data[int(line_data[0])] = line_data[2]
-						elif self._last_command == "addid":
+						elif self._last_command in ("addid", "update"):
 							return int(line_data[1])
 						elif self._last_command == "idle":
 							self._pending = False
@@ -181,7 +183,7 @@ class MPDProtocolClient(object):
 		else:
 			raise ConnectionError("getaddrinfo returns an empty list")
 
-	def connect(self, host, port):
+	def connect_to_server(self, host, port):
 		if self._sock is not None:
 			raise ConnectionError("Already connected")
 		if host.startswith("/"):
@@ -196,7 +198,7 @@ class MPDProtocolClient(object):
 			self.disconnect()
 			raise
 
-	def disconnect(self):
+	def disconnect_from_server(self):
 		self._rfile.close()
 		self._wfile.close()
 		self._sock.close()
