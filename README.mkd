@@ -8,9 +8,11 @@ A mpd library, designed with ease of use in mind.
 
 ## Features
 
-1. python-mpd API compatible.
-2. gobject-based signal system, for event handling.
-3. simplified client setup.
+1. implements both a high-level and a low-level client.
+2. gobject-based, for easy event handling (in the high-level client class).
+3. adapts to the server capatibilities (adds and removes commands on
+connection/disconnection, and on password changes).
+4. simplified client setup (high-level class).
 
 ## Dependencies
 
@@ -24,7 +26,7 @@ A mpd library, designed with ease of use in mind.
 
 A simple script:
 
-	import mpdor
+	import mpdor.client
 
 	client = mpdor.client.Client()
 	client.play()
