@@ -195,7 +195,7 @@ class MPDProtocolClient(gobject.GObject):
 		try:
 			self._hello()
 		except:
-			self.disconnect()
+			self.disconnect_from_server()
 			raise
 
 	def disconnect_from_server(self):

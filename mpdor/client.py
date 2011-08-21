@@ -38,31 +38,31 @@ class Client(mpdor.protocol.MPDProtocolClient):
 
 	def _read_line(self):
 		try:
-			mpdor.protocol.MPDProtocolClient._read_line(self)
+			return mpdor.protocol.MPDProtocolClient._read_line(self)
 		except mpdor.protocol.ConnectionError:
 			self.disconnect_from_server()
 			self.connect_to_server()
-			mpdor.protocol.MPDProtocolClient._read_line(self)
+			return mpdor.protocol.MPDProtocolClient._read_line(self)
 
 	def _hello(self):
 		try:
-			mpdor.protocol.MPDProtocolClient._hello(self)
+			return mpdor.protocol.MPDProtocolClient._hello(self)
 		except mpdor.protocol.ConnectionError:
 			self.disconnect_from_server()
 			self.connect_to_server()
-			mpdor.protocol.MPDProtocolClient._hello(self)
+			return mpdor.protocol.MPDProtocolClient._hello(self)
 	
 	def set_server(self, host, port, password):
 		self.__host, self.__port, self.__password = host, port, password
 
-	def connect_to_server(self, host=self.__host, port=self.__port):
-		mpdor.protocol.MPDProtocolClient.connect_to_server(self, host, port)
+	def connect_to_server(self):
+		mpdor.protocol.MPDProtocolClient.connect_to_server(self, self.__host, self.__port)
 		if self.__password not in ("", None):
 			self.password(self.__password)
 		
 		# for signals, we create a secondary client, which will use the idle mechanism to handle events
 		self.__notification_client = mpdor.protocol.MPDProtocolClient()
-		self.__notification_client.connect_to_server(host, port)
+		self.__notification_client.connect_to_server(self.__host, self.__port)
 		if self.__password not in ("", None):
 			self.__notification_client.password(self.__password)
 
