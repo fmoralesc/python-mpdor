@@ -94,8 +94,9 @@ class MPDProtocolClient(gobject.GObject):
 					for line in raw_lines:
 						line_data = [d.strip() for d in line.split(":")]
 						_attr, value = line_data[0], line_data[1]
-						if _attr in seen_attrs:	# TOFIX: might choke if there is duplicate data (id3 duplicates)
- 							items.append(tmp_dict)
+						# TODO: check if there are duplicates
+						if _attr in seen_attrs:
+							items.append(tmp_dict)
 							tmp_dict = {}
 							seen_attrs = []
 							seen_attrs.append(_attr)
@@ -175,7 +176,7 @@ class MPDProtocolClient(gobject.GObject):
 				sock = socket.socket(af, socktype, proto)
 				sock.connect(sa)
 				return sock
-			except socket.error, err:
+			except socket.error:
 				if sock is not None:
 					sock.close()
 		if err is not None:
