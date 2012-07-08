@@ -1,5 +1,6 @@
 import gobject
 import socket
+from mpdor.parser import parse
 
 HELLO_PREFIX = "OK MPD "
 ERROR_PREFIX = "ACK "
@@ -25,7 +26,7 @@ class MPDProtocolClient(gobject.GObject):
 	def __init__(self):
 		gobject.GObject.__init__(self)
 		self._reset()
-    
+
 	def _write_line(self, line):
 		self._wfile.write("%s\n" % line)
 		self._wfile.flush()
@@ -54,65 +55,12 @@ class MPDProtocolClient(gobject.GObject):
 		while line != None:
 			raw_lines.append(line)
 			line = self._read_line()
-		
+
 		if len(raw_lines) == 0:
 			return # we have OK
 		else:
-			if NEXT in raw_lines:
-				# TODO: extend the parser to handle this
-				pass
-			else:
-				# those are lists
-				if self._last_command in ("commands", "notcommands", "list", 
-						"listplaylist", "tagtypes", "urlhandlers"):
-					return [":".join(com.split(":")[1:]).strip() for com in raw_lines]
-				
-				#  those are dictionaries or single values
-				elif self._last_command in ("status", "currentsong", "stats", 
-						"replay_gain_status", "playlist", "addid", "idle", "update"):
-					response_data = {}
-					for line in raw_lines:
-						line_data = [d.strip() for d in line.split(":")]
-						if self._last_command == "playlist":
-							response_data[int(line_data[0])] = line_data[2]
-						elif self._last_command in ("addid", "update"):
-							return int(line_data[1])
-						elif self._last_command == "idle":
-							self._pending = False
-							return line_data[1]
-						else:
-							response_data[line_data[0]] = line_data[1]
-					return response_data
-				
-				# those are lists of dictionaries
-				elif self._last_command in ("playlistid", "playlistfind", 
-						"playlistsearch", "playlistinfo", "plchanges", "plchangesposid", 
-						"listplaylistinfo",	"search", "find", "listplaylists", "outputs"):
-					items = []
-					seen_attrs = []
-					tmp_dict = {}
-					for line in raw_lines:
-						line_data = [d.strip() for d in line.split(":")]
-						_attr, value = line_data[0], line_data[1]
-						# TODO: check if there are duplicates
-						if _attr in seen_attrs:
-							items.append(tmp_dict)
-							tmp_dict = {}
-							seen_attrs = []
-							seen_attrs.append(_attr)
-							tmp_dict[_attr] = value
-						elif line == raw_lines[-1]:
-							tmp_dict[_attr] = value
-							items.append(tmp_dict)
-							tmp_dict = {}
-							seen_attrs = []
-							seen_attrs.append(_attr)
-						else:
-							seen_attrs.append(_attr)
-							tmp_dict[_attr] = value
-					return items
-		return raw_lines
-	
+		    return raw_lines
+
 	def _execute(self, *args):
 		line = " ".join([args[0], " ".join(['"'+str(i)+'"' for i in args[1]])]).strip()
 		if not self._pending:
@@ -120,9 +68,9 @@ class MPDProtocolClient(gobject.GObject):
 			if self._command_list is not None:
 				self._command_list.append(line)
 			else:
-				return self._get_response()
+				return parse(self._get_response(), self)
 		else:
-			raise PendingCommandError("Can't execute commands while other" 
+			raise PendingCommandError("Can't execute commands while other"
 			"commands are pending")
 
 	def _create_executor(self, command):
@@ -224,8 +172,8 @@ class MPDProtocolClient(gobject.GObject):
 			raise CommandListError("Not in command list")
 		self._write_line("command_list_end")
 		self._command_list = None
-		return self._get_response()
-	
+		return parse(self._get_response(), self)
+
 	def idle(self, *subsystem):
 		if self._pending == False:
 			self._pending = True
