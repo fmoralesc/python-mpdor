@@ -59,7 +59,7 @@ class MPDProtocolClient(gobject.GObject):
 		if len(raw_lines) == 0:
 			return # we have OK
 		else:
-		    return raw_lines
+			return raw_lines
 
 	def _execute(self, *args):
 		line = " ".join([args[0], " ".join(['"'+str(i)+'"' for i in args[1]])]).strip()
@@ -68,6 +68,8 @@ class MPDProtocolClient(gobject.GObject):
 			if self._command_list is not None:
 				self._command_list.append(line)
 			else:
+				if self._last_command == "idle":
+					self._pending = False
 				return parse(self._get_response(), self)
 		else:
 			raise PendingCommandError("Can't execute commands while other"
